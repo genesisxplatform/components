@@ -41,10 +41,15 @@ rewritten to the `url` shape or paired with a `gx-cms` data migration.
 
 ### Versioning
 
-This fork starts a fresh version line at **1.0.0** — the same approach taken when
-`@gxpl/sdk` was forked from `@cntrl-site/sdk-nextjs`. Version numbers here are
-unrelated to upstream's; `@gxpl/components@1.0.0` is upstream's `1.0.93` plus GX
-changes.
+This fork starts a fresh version line — the same approach taken when `@gxpl/sdk`
+was forked from `@cntrl-site/sdk-nextjs`. Version numbers here are unrelated to
+upstream's; **`@gxpl/components@1.0.1`** is upstream's `1.0.93` plus GX changes.
+
+**Do not use `1.0.0` or `0.0.0-stage`.** Both are deprecated. `1.0.0` was
+published from the wrong baseline (upstream `1.0.51`) and is missing five
+components the editor offers — `marquee-text`, `mercury`, `helix`,
+`basic-burger` and `pretext`. npm forbids republishing a version, so the first
+good release is `1.0.1`.
 
 ### Known coupling
 
