@@ -1,7 +1,7 @@
 {
-  "name": "@cntrl-site/components",
-  "version": "1.0.93",
-  "description": "Custom components for control editor and public websites.",
+  "name": "@gxpl/components",
+  "version": "1.0.0",
+  "description": "Custom components for the GX platform editor and published websites.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
   "types": "dist/index.d.ts",
@@ -45,14 +45,14 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/cntrl-site/components.git"
+    "url": "git+https://github.com/genesisxplatform/components.git"
   },
   "author": "arsen@momdesign.nyc",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/cntrl-site/components/issues"
+    "url": "https://github.com/genesisxplatform/components/issues"
   },
-  "homepage": "https://github.com/cntrl-site/components#readme",
+  "homepage": "https://github.com/genesisxplatform/components#readme",
   "directories": {
     "lib": "dist"
   },
