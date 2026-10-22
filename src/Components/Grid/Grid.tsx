@@ -5,11 +5,13 @@ import {
   buildColorVars,
   getFormFieldValidationError,
   scalingValue,
+  useLazyVideos,
   useScopedStyles,
 } from '../utils/index';
 import { useCallback, useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { omitTextColors, TextStyles, textStylesToCss } from '../utils/textStylesToCss';
+import { LazyVideo } from '../helpers/LazyVideo/LazyVideo';
 
 function sv(px: number): string {
   return `calc(var(--cntrl-article-width, 100vw) * ${px / 1440})`;
@@ -586,33 +588,46 @@ function unloadVideoElement(video: HTMLVideoElement) {
   video.load();
 }
 
+const SPLIDE_SLIDE_VIDEOS = '.splide__slide video';
+
+function shouldPlaySlideVideo(video: HTMLVideoElement): boolean {
+  if (video.closest('.splide--fade, .splide__slide.is-active:not(.splide__slide--clone), .splide__slide.is-next')) return true;
+  const slide = video.closest<HTMLElement>('.splide__slide');
+  if (!slide || slide.classList.contains('splide__slide--clone')) return false;
+  const slideIndex = slide.dataset.slideIndex;
+  const upcomingSlide = slide.parentElement?.querySelector<HTMLElement>('.splide__slide.is-next');
+  return slideIndex !== undefined && upcomingSlide?.dataset.slideIndex === slideIndex;
+}
+
 function GridMediaItem({
   media,
   className,
   style,
+  isSplideSlide = false,
   onMediaClick,
 }: {
   media: GridMedia;
   className: string;
   style: React.CSSProperties;
+  isSplideSlide?: boolean;
   onMediaClick?: (e: React.MouseEvent<HTMLElement>) => void;
 }) {
   if (isVideoMedia(media)) {
-    return (
-      <video
-        src={media.url}
-        className={className}
-        style={{
-          ...style,
-          cursor: onMediaClick ? 'pointer' : 'default',
-        }}
-        muted
-        autoPlay
-        loop
-        playsInline
-        onClick={onMediaClick}
-      />
-    );
+    const videoProps = {
+      src: media.url,
+      className,
+      style: {
+        ...style,
+        cursor: onMediaClick ? 'pointer' : 'default',
+      },
+      muted: true,
+      loop: true,
+      playsInline: true,
+      onClick: onMediaClick,
+    };
+    return isSplideSlide
+      ? <video {...videoProps} preload='auto' autoPlay />
+      : <LazyVideo {...videoProps} autoPlay />;
   }
 
   return (
@@ -626,6 +641,25 @@ function GridMediaItem({
       }}
       onClick={onMediaClick}
     />
+  );
+}
+
+function GridItemMediaWrapper({
+  className,
+  style,
+  children,
+}: {
+  className: string;
+  style: React.CSSProperties;
+  children: React.ReactNode;
+}) {
+  const [wrapper, setWrapper] = useState<HTMLDivElement | null>(null);
+  useLazyVideos(wrapper, { autoPlay: true, selector: SPLIDE_SLIDE_VIDEOS, shouldPlay: shouldPlaySlideVideo });
+
+  return (
+    <div ref={setWrapper} className={className} style={style}>
+      {children}
+    </div>
   );
 }
 
@@ -1784,7 +1818,7 @@ export function Grid({ settings, content, isEditor, isPreviewMode, isEditMode, m
               .map(entry => entry.lightboxMedia!);
 
             const imageContent = (
-              <div className={imageWrapperClassName} style={imageWrapperStyle}>
+              <GridItemMediaWrapper className={imageWrapperClassName} style={imageWrapperStyle}>
                 {displayItems.length === 0
                   ? null
                   : slider === 'off'
@@ -1811,7 +1845,7 @@ export function Grid({ settings, content, isEditor, isPreviewMode, isEditMode, m
                       <div className={`${P}-item-image-wrapper-sizer`} aria-hidden="true">
                         {displayItems.map(({ displayMedia }) => (
                           isVideoMedia(displayMedia) ? (
-                            <video key={`sizer-${displayMedia.url}`} src={displayMedia.url} muted playsInline />
+                            <LazyVideo key={`sizer-${displayMedia.url}`} src={displayMedia.url} nearPreload='metadata' muted playsInline />
                           ) : (
                             <img key={`sizer-${displayMedia.url}`} src={displayMedia.url} alt="" />
                           )
@@ -1847,11 +1881,12 @@ export function Grid({ settings, content, isEditor, isPreviewMode, isEditMode, m
                           ? lightboxItemsForEntry.findIndex(item => item.url === lightboxMedia.url)
                           : -1;
                         return (
-                          <SplideSlide key={imgIndex}>
+                          <SplideSlide key={imgIndex} data-slide-index={imgIndex}>
                             <GridMediaItem
                               media={displayMedia}
                               className={`${P}-item-${isVideoMedia(displayMedia) ? 'video' : 'image'}`.trim()}
                               style={imageStyle}
+                              isSplideSlide
                               onMediaClick={canOpenLightboxMedia && lightboxIndex >= 0
                                 ? () => openLightbox(lightboxItemsForEntry, lightboxIndex)
                                 : undefined}
@@ -1862,7 +1897,7 @@ export function Grid({ settings, content, isEditor, isPreviewMode, isEditMode, m
                     </Splide>
                     </>
                 }
-              </div>
+              </GridItemMediaWrapper>
             );
 
             const typeABText = !isTextBeforeImage ? (

@@ -6,7 +6,6 @@ import {
   LightboxStrip,
 } from './LightboxStrip';
 import { ComponentSchemaV1, SchemaProperty } from '../../types/SchemaV1';
-import lightboxStripSourceRaw from './LightboxStrip.tsx?raw';
 
 const defaultCloseIconUrl =
   'data:image/svg+xml,' +
@@ -698,7 +697,6 @@ export const LightboxStripComponent = {
     url: 'https://cdn.cntrl.site/component-assets/Strip.mp4',
   },
   schema,
-  sourceCode: lightboxStripSourceRaw,
   assetsPaths: {
     content: [{ path: 'image.url', placeholderEnabled: true }],
     parameters: [{ path: 'cover', placeholderEnabled: true }], 

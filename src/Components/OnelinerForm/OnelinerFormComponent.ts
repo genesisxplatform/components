@@ -1,6 +1,5 @@
 import { OnelinerForm } from './OnelinerForm';
 import { ComponentSchemaV1 } from '../../types/SchemaV1';
-import onelinerFormSourceRaw from './OnelinerForm.tsx?raw';
 
 const onelinerDefaultSubmitIconUrl =
   'data:image/svg+xml,' +
@@ -578,5 +577,4 @@ export const OnelinerFormComponent = {
     statusFontSettings: 'fontFamily',
   },
   schema,
-  sourceCode: onelinerFormSourceRaw,
 };

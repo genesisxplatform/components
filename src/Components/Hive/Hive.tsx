@@ -1,5 +1,6 @@
 import { CommonComponentProps } from '../props';
 import { scalingValue, useScopedStyles } from '../utils/index';
+import { LazyVideo } from '../helpers/LazyVideo/LazyVideo';
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
@@ -841,7 +842,7 @@ function MediaItem({
 }) {
   if (isVideoMedia(media)) {
     return (
-      <video
+      <LazyVideo
         src={media.url}
         className={className}
         data-hive-grid-index={gridIndex}
@@ -853,7 +854,6 @@ function MediaItem({
         autoPlay
         loop
         playsInline
-        preload='auto'
         onClick={onMediaClick}
       />
     );

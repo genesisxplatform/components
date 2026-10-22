@@ -37,7 +37,20 @@ and `@gxpl/sdk` were already on. Forking here keeps the asset contract aligned
 with stored data while letting GX iterate on components independently.
 
 Anything cherry-picked from upstream at or after `751196f` must either be
-rewritten to the `url` shape or paired with a `gx-cms` data migration.
+rewritten to the `url` shape or paired with a `gx-cms` data migration. Check
+conflict-free hunks too: `git grep assetId -- src` must come back empty. `npm run
+build` type-checks first, and `tsc` reports a stray `assetId` as an unknown property.
+
+### Ported from upstream
+
+`1.1.0` carries upstream's October 2026 performance work, rewritten to the `url` shape:
+
+| Upstream | Here |
+|---|---|
+| [#68](https://github.com/cntrl-site/components/pull/68) | Component sources (`sourceCode`, ~740 KB) are gone from the definitions. Upstream moves them to a `/sources` entry for the editor's Fork flow; GX has no Fork flow, so they're dropped entirely. The hyphenation and `franc-min` half doesn't apply: Pretext here predates hyphenation. |
+| [#69](https://github.com/cntrl-site/components/pull/69) | `@gxpl/components/elements`: one chunk per component (see [Lazy elements](#lazy-elements)). |
+| [#70](https://github.com/cntrl-site/components/pull/70) | GX variant, see [Videos](#videos). |
+| [#71](https://github.com/cntrl-site/components/pull/71) | MarqueeText runs its wave only while it is on screen. |
 
 ### Versioning
 
@@ -62,5 +75,49 @@ is tracked as follow-up work.
 ```bash
 npm ci
 npm run dev     # vite dev playground
-npm run build   # emits dist/
+npm run build   # type-checks, then emits dist/
+npm test        # vitest
 ```
+
+## Videos
+
+GX sites deliberately start loading every scene's media before anyone transitions
+to it, so component videos keep 1.0.1's loading: they render with `preload="auto"`
+and `autoplay`, and download and start playing straight from the HTML.
+
+`LazyVideo` and `useLazyVideos` keep upstream's names so later upstream fixes still
+apply, but here they only manage playback. Once a component mounts, they take over
+from the `autoplay` attribute:
+
+- A video plays while it is on screen and pauses when it leaves.
+- Grid sliders play only the active and next slides, and mute Splide's cloned slides so those can play.
+- Marquee polls its clones every 250 ms and plays only the ones in view.
+
+Upstream's version also defers downloads until a video nears the viewport. That
+isn't ported: an incoming scene mounts when its transition starts, and for an east
+or west slide it begins a full window-width off screen.
+
+## Lazy elements
+
+`@gxpl/components/elements` gives the built-in component implementations without loading all of them up front:
+
+- `hasComponentElement(id)`: whether `id` is a built-in component.
+- `getComponentElement(id)`: the element, if it has already loaded.
+- `loadComponentElement(id)`: loads it. Concurrent calls share one request.
+- `hasComponentElementFailed(id)`: true after a failed load, until a retry succeeds.
+
+In the browser every component is its own chunk. After a failed load, calls within the next 2 s (then 4 s) return the same rejection instead of fetching again, and a component gets at most 3 attempts per page load.
+
+Under the `node` export condition the entry resolves to `elements.node`, which has every element synchronously, so server rendering includes all components.
+
+### Jest
+
+jsdom test environments resolve the `browser` and `require` conditions rather than `node`, and Jest can't run the browser variant's native `import()` without `--experimental-vm-modules`. Map the subpath to the node variant in `jest.config.js`:
+
+```js
+moduleNameMapper: {
+  '^@gxpl/components/elements$': require.resolve('@gxpl/components/elements'),
+},
+```
+
+`require.resolve` runs in Node while the config loads, so it returns `dist/elements.node.js`.

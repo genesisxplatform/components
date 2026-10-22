@@ -7,7 +7,6 @@ import {
   JOURNAL_TEXT_STYLE_TAB_LABELS,
   type JournalTextStylePrefix,
 } from '../LightboxJournal/utils';
-import waterfallSourceRaw from './Waterfall.tsx?raw';
 
 const defaultCloseIconUrl =
   'data:image/svg+xml,' +
@@ -762,5 +761,4 @@ export const WaterfallComponent = {
     }), {}),
   },
   schema,
-  sourceCode: waterfallSourceRaw,
 };

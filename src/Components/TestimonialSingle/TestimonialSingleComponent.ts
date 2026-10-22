@@ -1,6 +1,5 @@
 import { TestimonialSingle } from './TestimonialSingle';
 import { ComponentSchemaV1 } from '../../types/SchemaV1';
-import testimonialSingleSourceRaw from './TestimonialSingle.tsx?raw';
 
 const testimonialDefaultControlsIconUrl =
   'data:image/svg+xml,' +
@@ -470,7 +469,6 @@ export const TestimonialSingleComponent = {
     }
   },
   schema,
-  sourceCode: testimonialSingleSourceRaw,
   assetsPaths: {
     content: [{ path: 'image.url', placeholderEnabled: true }],
     parameters: [{ path: 'controls.icon' }]
