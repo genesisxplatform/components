@@ -1,6 +1,6 @@
 {
   "name": "@gxpl/components",
-  "version": "1.0.1",
+  "version": "1.1.0",
   "description": "Custom components for the GX platform editor and published websites.",
   "main": "dist/index.js",
   "module": "dist/index.mjs",
@@ -54,7 +54,8 @@
   "scripts": {
     "test": "vitest run",
     "dev": "vite development",
-    "prebuild": "rimraf ./dist",
+    "typecheck": "tsc --noEmit",
+    "prebuild": "npm run typecheck && rimraf ./dist",
     "build": "vite build",
     "build:watch": "vite build --watch",
     "postbuild": "npm run check:sources && npm run check:elements",
