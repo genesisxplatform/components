@@ -6,7 +6,7 @@
     "declaration": true,
     "declarationDir": "dist",
     "outDir": "dist",
-    "lib": ["DOM", "DOM.Iterable"]
+    "lib": ["ES2020", "DOM", "DOM.Iterable"]
   },
   "include": ["src/**/*"],
   "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]

@@ -79,6 +79,24 @@ npm run build   # type-checks, then emits dist/
 npm test        # vitest
 ```
 
+### Seeing local changes in the editor
+
+`cms-client` (in `platform`) can load this package straight from source instead of the
+published `@gxpl/components`. Add to `platform/apps/cms-client/.env`:
+
+```bash
+GX_COMPONENTS_DIR=../../../components
+```
+
+then start the editor as usual. The dev server logs `@gxpl/components -> …/components/src`
+when it is active, and edits here reload the editor without a build step. Run `npm ci` here
+first — the source's own dependencies (`classnames`, `@splidejs/*`) resolve from this
+checkout's `node_modules`.
+
+This covers the editor only. `cms-server`, `public-api-server` and `code-export-server` keep
+using the published package, so a component that isn't released yet gets no asset collection
+or prefill on publish — publish a new version before testing that path.
+
 ## Videos
 
 GX sites deliberately start loading every scene's media before anyone transitions

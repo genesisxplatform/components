@@ -24,6 +24,7 @@ const loaders: Record<string, () => Promise<ComponentElement>> = {
   'scale': () => import('./Components/Scale/Scale').then(m => m.Scale),
   'simple-button': () => import('./Components/SimpleButton/SimpleButton').then(m => m.SimpleButton),
   'slider-2-0': () => import('./Components/Slider20/Slider20').then(m => m.Slider20),
+  'survey': () => import('./Components/Survey/Survey').then(m => m.Survey),
   'testimonials': () => import('./Components/TestimonialGrid/TestimonialGrid').then(m => m.TestimonialGrid),
   'testimonial-single': () => import('./Components/TestimonialSingle/TestimonialSingle').then(m => m.TestimonialSingle),
   'waterfall': () => import('./Components/Waterfall/Waterfall').then(m => m.Waterfall),
