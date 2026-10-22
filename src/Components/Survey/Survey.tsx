@@ -83,14 +83,23 @@ type SurveySettings = {
   questionFontSettings?: FontSettings;
   questionFontSize?: number;
   questionLineHeight?: number;
+  questionLetterSpacing?: number;
+  questionWordSpacing?: number;
+  questionTextAppearance?: TextStyles['textAppearance'];
   answerFontFamily?: string;
   answerFontSettings?: FontSettings;
   answerFontSize?: number;
   answerLineHeight?: number;
+  answerLetterSpacing?: number;
+  answerWordSpacing?: number;
+  answerTextAppearance?: TextStyles['textAppearance'];
   buttonFontFamily?: string;
   buttonFontSettings?: FontSettings;
   buttonFontSize?: number;
   buttonLineHeight?: number;
+  buttonLetterSpacing?: number;
+  buttonWordSpacing?: number;
+  buttonTextAppearance?: TextStyles['textAppearance'];
 };
 
 type SurveyProps = {
@@ -260,6 +269,9 @@ function resolveTextStyle(
   fontSettings: FontSettings | undefined,
   fontSize: number | undefined,
   lineHeight: number | undefined,
+  letterSpacing: number | undefined,
+  wordSpacing: number | undefined,
+  textAppearance: TextStyles['textAppearance'],
 ): TextStyles {
   return {
     fontSettings: {
@@ -269,8 +281,9 @@ function resolveTextStyle(
     },
     fontSize: fontSize ?? 0.01,
     lineHeight,
-    letterSpacing: 0,
-    wordSpacing: 0,
+    letterSpacing: letterSpacing ?? 0,
+    wordSpacing: wordSpacing ?? 0,
+    textAppearance,
     color: 'inherit',
   };
 }
@@ -318,14 +331,23 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
     questionFontSettings,
     questionFontSize,
     questionLineHeight,
+    questionLetterSpacing,
+    questionWordSpacing,
+    questionTextAppearance,
     answerFontFamily,
     answerFontSettings,
     answerFontSize,
     answerLineHeight,
+    answerLetterSpacing,
+    answerWordSpacing,
+    answerTextAppearance,
     buttonFontFamily,
     buttonFontSettings,
     buttonFontSize,
     buttonLineHeight,
+    buttonLetterSpacing,
+    buttonWordSpacing,
+    buttonTextAppearance,
   } = settings;
   const items = content ?? [];
   const isInteractive = !isEditor || isPreviewMode;
@@ -383,15 +405,39 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
   };
 
   const questionTypographyCss = omitTextColors(textStylesToCss(
-    resolveTextStyle(questionFontFamily, questionFontSettings, questionFontSize, questionLineHeight),
+    resolveTextStyle(
+      questionFontFamily,
+      questionFontSettings,
+      questionFontSize,
+      questionLineHeight,
+      questionLetterSpacing,
+      questionWordSpacing,
+      questionTextAppearance,
+    ),
     isEditor,
   ));
   const answerTypographyCss = omitTextColors(textStylesToCss(
-    resolveTextStyle(answerFontFamily, answerFontSettings, answerFontSize, answerLineHeight),
+    resolveTextStyle(
+      answerFontFamily,
+      answerFontSettings,
+      answerFontSize,
+      answerLineHeight,
+      answerLetterSpacing,
+      answerWordSpacing,
+      answerTextAppearance,
+    ),
     isEditor,
   ));
   const buttonTypographyCss = omitTextColors(textStylesToCss(
-    resolveTextStyle(buttonFontFamily, buttonFontSettings, buttonFontSize, buttonLineHeight),
+    resolveTextStyle(
+      buttonFontFamily,
+      buttonFontSettings,
+      buttonFontSize,
+      buttonLineHeight,
+      buttonLetterSpacing,
+      buttonWordSpacing,
+      buttonTextAppearance,
+    ),
     isEditor,
   ));
 
