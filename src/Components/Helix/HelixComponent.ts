@@ -1,6 +1,5 @@
 import { Helix } from './Helix';
 import { ComponentSchemaV1 } from '../../types/SchemaV1';
-import helixSourceRaw from './Helix.tsx?raw';
 
 const defaultImageUrls = [
   'https://cdn.cntrl.site/component-assets/Helix-default-1.png',
@@ -234,7 +233,6 @@ export const HelixComponent = {
     },
   },
   schema,
-  sourceCode: helixSourceRaw,
   assetsPaths: {
     content: [{ path: 'image.url', placeholderEnabled: true }],
     parameters: [],

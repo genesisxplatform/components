@@ -7,7 +7,6 @@ import {
   JOURNAL_TEXT_STYLE_TAB_LABELS,
   type JournalTextStylePrefix,
 } from '../LightboxJournal/utils';
-import hiveSourceRaw from './Hive.tsx?raw';
 
 const defaultCloseIconUrl =
   'data:image/svg+xml,' +
@@ -679,5 +678,4 @@ export const HiveComponent = {
     }), {}),
   },
   schema,
-  sourceCode: hiveSourceRaw,
 };

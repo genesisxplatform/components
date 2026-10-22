@@ -1,6 +1,5 @@
 import { Grid } from './Grid';
 import { ComponentSchemaV1 } from '../../types/SchemaV1';
-import formSourceRaw from './Grid.tsx?raw';
 
 const textStyleProperties = {
   fontSettings: {
@@ -877,5 +876,4 @@ export const GridComponent = {
     lightboxCounterFontSettings: 'lightboxCounterFontFamily',
   },
   schema,
-  sourceCode: formSourceRaw,
 };

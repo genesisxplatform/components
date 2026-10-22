@@ -1,6 +1,5 @@
 import { Mercury } from './Mercury';
 import { ComponentSchemaV1 } from '../../types/SchemaV1';
-import mercurySourceRaw from './Mercury.tsx?raw';
 
 function createRangeControlLayoutProperty(title: string) {
   return {
@@ -774,7 +773,6 @@ export const MercuryComponent = {
     url: 'https://cdn.cntrl.site/component-assets/Mercury.mp4',
   },
   schema,
-  sourceCode: mercurySourceRaw,
   assetsPaths: {
     content: [{ path: 'gallery.media.url', placeholderEnabled: true }],
     parameters: [],

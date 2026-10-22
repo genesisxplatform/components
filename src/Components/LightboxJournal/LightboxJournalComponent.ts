@@ -6,7 +6,6 @@ import {
   type JournalTextStylePrefix,
 } from './utils';
 import { ComponentSchemaV1, SchemaProperty } from '../../types/SchemaV1';
-import lightboxJournalSourceRaw from './LightboxJournal.tsx?raw';
 
 const defaultCloseIconUrl =
   'data:image/svg+xml,' +
@@ -664,7 +663,6 @@ export const LightboxJournalComponent = {
     url: 'https://cdn.cntrl.site/component-assets/Journal.png',
   },
   schema,
-  sourceCode: lightboxJournalSourceRaw,
   assetsPaths: {
     content: [{ path: 'image.url', placeholderEnabled: true }],
     parameters: [{ path: 'cover', placeholderEnabled: true }], 

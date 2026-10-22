@@ -1,15 +1,23 @@
-import { defineConfig } from "vite";
+import { defineConfig, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import dts from "vite-plugin-dts";
 import path from "path";
 
+const keepDynamicImportInCjs = (): Plugin => ({
+  name: "keep-dynamic-import-in-cjs",
+  renderDynamicImport({ format }) {
+    return format === "cjs" ? { left: "import(", right: ")" } : null;
+  },
+});
+
 export default defineConfig({
-  plugins: [react(), dts()],
+  plugins: [react(), dts(), keepDynamicImportInCjs()],
   build: {
     lib: {
       entry: {
         index: path.resolve(__dirname, "src/index.ts"),
         utils: path.resolve(__dirname, "src/Components/utils/index.ts"),
+        sources: path.resolve(__dirname, "src/sources.ts"),
       },
       formats: ["es", "cjs"],
     },
