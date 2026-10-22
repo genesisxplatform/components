@@ -20,11 +20,6 @@
       "import": "./dist/utils.mjs",
       "require": "./dist/utils.js"
     },
-    "./sources": {
-      "types": "./dist/sources.d.ts",
-      "import": "./dist/sources.mjs",
-      "require": "./dist/sources.js"
-    },
     "./elements": {
       "types": "./dist/elements.d.ts",
       "node": {
@@ -43,9 +38,6 @@
       "utils": [
         "./dist/Components/utils/index.d.ts"
       ],
-      "sources": [
-        "./dist/sources.d.ts"
-      ],
       "elements": [
         "./dist/elements.d.ts"
       ]
@@ -58,8 +50,7 @@
     "prebuild": "npm run typecheck && rimraf ./dist",
     "build": "vite build",
     "build:watch": "vite build --watch",
-    "postbuild": "npm run check:sources && npm run check:elements",
-    "check:sources": "node scripts/check-sources.mjs",
+    "postbuild": "npm run check:elements",
     "check:elements": "node scripts/check-elements.mjs",
     "prepublishOnly": "cross-env NODE_ENV=production npm run build"
   },

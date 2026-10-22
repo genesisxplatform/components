@@ -47,7 +47,7 @@ build` type-checks first, and `tsc` reports a stray `assetId` as an unknown prop
 
 | Upstream | Here |
 |---|---|
-| [#68](https://github.com/cntrl-site/components/pull/68) | Component sources move out of the main entry into `@gxpl/components/sources`. The hyphenation and `franc-min` half doesn't apply: Pretext here predates hyphenation. |
+| [#68](https://github.com/cntrl-site/components/pull/68) | Component sources (`sourceCode`, ~740 KB) are gone from the definitions. Upstream moves them to a `/sources` entry for the editor's Fork flow; GX has no Fork flow, so they're dropped entirely. The hyphenation and `franc-min` half doesn't apply: Pretext here predates hyphenation. |
 | [#69](https://github.com/cntrl-site/components/pull/69) | `@gxpl/components/elements`: one chunk per component (see [Lazy elements](#lazy-elements)). |
 | [#70](https://github.com/cntrl-site/components/pull/70) | GX variant, see [Videos](#videos). |
 | [#71](https://github.com/cntrl-site/components/pull/71) | MarqueeText runs its wave only while it is on screen. |
