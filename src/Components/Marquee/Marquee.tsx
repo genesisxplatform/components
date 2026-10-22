@@ -3,6 +3,7 @@ import cn from 'classnames';
 import { CommonComponentProps } from '../props';
 import { scalingValue } from '../utils/scalingValue';
 import { useScopedStyles } from '../utils/useScopedStyles';
+import { NEAR_VIEWPORT_MARGIN, observeIntersection, pauseVideo, playVideo, raisePreload } from '../utils/useLazyVideos';
 
 function getCSS(P: string, setWidthPx: number): string {
   const distance = setWidthPx > 0 ? `${setWidthPx}px` : '0px';
@@ -147,6 +148,8 @@ const MIN_CONTENT_SEQUENCE_REPEAT = 3;
 const MAX_CONTENT_SEQUENCE_REPEAT = 12;
 const MIN_TRUSTWORTHY_CYCLE_WIDTH_PX = 32;
 const OUTER_SET_COPIES = 3;
+const VIDEO_POLL_MS = 250;
+const VIDEO_LOOKAHEAD_WRAPPER_WIDTHS = 0.5;
 
 const restartTrackAnimation = (track: HTMLElement) => {
   track.style.setProperty('animation-name', 'none');
@@ -236,7 +239,7 @@ const isVideoMedia = (media: Pick<NonNullable<MarqueeItem['image']>, 'url' | 'ty
 
 const isMediaReady = (el: HTMLImageElement | HTMLVideoElement | null): boolean => {
   if (!el) return false;
-  if (el instanceof HTMLVideoElement) return el.readyState >= 2;
+  if (el instanceof HTMLVideoElement) return el.readyState >= 1;
   return el.complete;
 };
 
@@ -320,10 +323,9 @@ const MarqueeItemCard = ({
         style={mediaStyle}
         muted
         loop
-        autoPlay
         playsInline
-        preload="auto"
-        onLoadedData={isFirstSet ? onFirstSetImageDone : undefined}
+        preload="none"
+        onLoadedMetadata={isFirstSet ? onFirstSetImageDone : undefined}
         onError={isFirstSet ? onFirstSetImageDone : undefined}
       />
     ) : (
@@ -398,6 +400,7 @@ export const Marquee = ({ settings, content, isEditor, isPreviewMode, isEditMode
     cornerRadius = 0,
   } = settings;
   const imageFit = useMemo(() => normalizeImageFit(settings.imageFit), [settings.imageFit]);
+  const needsVideoMetadata = imageFit.display !== 'cover';
   const originalItemCount = content?.length ?? 0;
   const showControls = Boolean(isEditMode);
   const showHoverEffects = !isEditor || Boolean(isPreviewMode);
@@ -494,6 +497,57 @@ export const Marquee = ({ settings, content, isEditor, isPreviewMode, isEditMode
       observer.disconnect();
     };
   }, [hoverEffect, swappedSlots, showHoverEffects]);
+
+  useEffect(() => {
+    const wrapper = wrapperRef.current;
+    if (!wrapper || typeof IntersectionObserver === 'undefined') return;
+    let isNear = false;
+    let isVisible = false;
+    let pollTimer: ReturnType<typeof setInterval> | undefined;
+    const syncVideos = () => {
+      const videos = wrapper.querySelectorAll('video');
+      if (!isNear) {
+        videos.forEach(pauseVideo);
+        return;
+      }
+      const wrapperRect = wrapper.getBoundingClientRect();
+      const lookahead = wrapperRect.width * VIDEO_LOOKAHEAD_WRAPPER_WIDTHS;
+      videos.forEach((video) => {
+        const rect = video.getBoundingClientRect();
+        const isInView = rect.right > wrapperRect.left && rect.left < wrapperRect.right;
+        const isNearView = rect.right > wrapperRect.left - lookahead && rect.left < wrapperRect.right + lookahead;
+        if (isNearView) raisePreload(video, 'auto');
+        else if (needsVideoMetadata) raisePreload(video, 'metadata');
+        if (isVisible && isInView) {
+          if (video.paused) playVideo(video);
+        } else {
+          pauseVideo(video);
+        }
+      });
+    };
+    const update = () => {
+      if (isNear && pollTimer === undefined) {
+        pollTimer = setInterval(syncVideos, VIDEO_POLL_MS);
+      } else if (!isNear && pollTimer !== undefined) {
+        clearInterval(pollTimer);
+        pollTimer = undefined;
+      }
+      syncVideos();
+    };
+    const stopNear = observeIntersection(wrapper, NEAR_VIEWPORT_MARGIN, (intersecting) => {
+      isNear = intersecting;
+      update();
+    });
+    const stopVisible = observeIntersection(wrapper, '0px', (intersecting) => {
+      isVisible = intersecting;
+      update();
+    });
+    return () => {
+      stopNear();
+      stopVisible();
+      clearInterval(pollTimer);
+    };
+  }, [useMarqueeTrack, needsVideoMetadata]);
 
   useLayoutEffect(() => {
     if (!useMarqueeTrack) return;

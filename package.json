@@ -52,7 +52,7 @@
     }
   },
   "scripts": {
-    "test": "jest",
+    "test": "vitest run",
     "dev": "vite development",
     "prebuild": "rimraf ./dist",
     "build": "vite build",
@@ -89,7 +89,6 @@
   "devDependencies": {
     "@antfu/eslint-config": "^3.16.0",
     "@splidejs/react-splide": "^0.7.12",
-    "ts-node": "^10.9.1",
     "@tsconfig/node16": "^1.0.3",
     "@tsconfig/recommended": "^1.0.1",
     "@types/node": "^18.11.7",
@@ -97,12 +96,15 @@
     "@types/react-dom": "^18.2.0",
     "@vitejs/plugin-react": "^4.3.4",
     "cross-env": "^10.1.0",
+    "jsdom": "^26.1.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rimraf": "^6.0.1",
     "sass": "^1.86.3",
+    "ts-node": "^10.9.1",
     "typescript": "^5.2.2",
     "vite": "^6.2.5",
-    "vite-plugin-dts": "^4.5.3"
+    "vite-plugin-dts": "^4.5.3",
+    "vitest": "^3.2.7"
   }
 }
