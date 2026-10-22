@@ -416,7 +416,7 @@ export const SurveyComponent = {
   version: 1,
   preview: {
     type: 'image' as const,
-    url: 'https://cdn.cntrl.site/component-assets/Testimonials_Single.png',
+    url: 'https://cdn.cntrl.site/component-assets/survey-test.png',
   },
   defaultSize: {
     d: {
