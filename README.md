@@ -65,6 +65,24 @@ npm run dev     # vite dev playground
 npm run build   # emits dist/
 ```
 
+## Videos
+
+GX sites deliberately start loading every scene's media before anyone transitions
+to it, so component videos keep 1.0.1's loading: they render with `preload="auto"`
+and `autoplay`, and download and start playing straight from the HTML.
+
+`LazyVideo` and `useLazyVideos` keep upstream's names so later upstream fixes still
+apply, but here they only manage playback. Once a component mounts, they take over
+from the `autoplay` attribute:
+
+- A video plays while it is on screen and pauses when it leaves.
+- Grid sliders play only the active and next slides, and mute Splide's cloned slides so those can play.
+- Marquee polls its clones every 250 ms and plays only the ones in view.
+
+Upstream's version also defers downloads until a video nears the viewport. That
+isn't ported: an incoming scene mounts when its transition starts, and for an east
+or west slide it begins a full window-width off screen.
+
 ## Lazy elements
 
 `@gxpl/components/elements` gives the built-in component implementations without loading all of them up front:

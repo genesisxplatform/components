@@ -324,8 +324,9 @@ const MarqueeItemCard = ({
         style={mediaStyle}
         muted
         loop
+        autoPlay
         playsInline
-        preload="none"
+        preload="auto"
         onLoadedMetadata={isFirstSet ? onFirstSetImageDone : undefined}
         onError={isFirstSet ? onFirstSetImageDone : undefined}
       />
@@ -507,6 +508,8 @@ export const Marquee = ({ settings, content, isEditor, isPreviewMode, isEditMode
     let pollTimer: ReturnType<typeof setInterval> | undefined;
     const syncVideos = () => {
       const videos = wrapper.querySelectorAll('video');
+      // Clones render with the autoplay attribute (as in 1.0.1); once polling runs, it decides.
+      videos.forEach((video) => { video.autoplay = false; });
       if (!isNear) {
         videos.forEach(pauseVideo);
         return;

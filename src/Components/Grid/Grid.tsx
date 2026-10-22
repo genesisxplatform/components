@@ -547,13 +547,10 @@ function collectGridLightboxMedia(content: any[]): GridMedia[] {
 }
 
 function LightboxMediaPreloadPool({ mediaList }: { mediaList: GridMedia[] }) {
-  const [pool, setPool] = useState<HTMLDivElement | null>(null);
-  useLazyVideos(pool, { preload: 'metadata' });
   if (mediaList.length === 0) return null;
 
   return (
     <div
-      ref={setPool}
       aria-hidden
       style={{
         position: 'absolute',
@@ -569,7 +566,7 @@ function LightboxMediaPreloadPool({ mediaList }: { mediaList: GridMedia[] }) {
           <video
             key={media.url}
             src={media.url}
-            preload='none'
+            preload='auto'
             muted
             playsInline
           />
@@ -629,7 +626,7 @@ function GridMediaItem({
       onClick: onMediaClick,
     };
     return isSplideSlide
-      ? <video {...videoProps} preload='none' />
+      ? <video {...videoProps} preload='auto' autoPlay />
       : <LazyVideo {...videoProps} autoPlay />;
   }
 

@@ -53,6 +53,9 @@ export function useLazyVideos(element: Element | null, { autoPlay = false, prelo
       getVideos().forEach((video) => {
         if (isNear) raisePreload(video, preload);
         if (!autoPlay) return;
+        // A video that renders with the autoplay attribute would still start by itself once its
+        // data arrives, even off screen; from here on, playback is this hook's call.
+        video.autoplay = false;
         if (isVisible && (!shouldPlay || shouldPlay(video))) {
           video.muted = true;
           if (video.paused) playVideo(video);

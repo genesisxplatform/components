@@ -92,26 +92,36 @@ afterEach(() => {
 });
 
 describe('LazyVideo', () => {
-  it('server-renders without autoplay and with preload none', () => {
+  it('server-renders with autoplay and its full preload level, as 1.0.1 did', () => {
     const html = renderToString(<LazyVideo src="a.mp4" muted loop playsInline autoPlay />);
-    expect(html).toContain('preload="none"');
-    expect(html).not.toContain('autoplay');
+    expect(html).toContain('preload="auto"');
+    expect(html).toContain('autoplay');
+
+    const sizer = renderToString(<LazyVideo src="a.mp4" nearPreload="metadata" />);
+    expect(sizer).toContain('preload="metadata"');
+    expect(sizer).not.toContain('autoplay');
   });
 
-  it('loads nothing until the video nears the viewport', () => {
+  it('downloads from the start and takes playback over from the autoplay attribute', () => {
     render(<LazyVideo src="a.mp4" muted loop playsInline autoPlay />);
     const video = container.querySelector('video')!;
-    expect(video.preload).toBe('none');
-    expect(video.hasAttribute('autoplay')).toBe(false);
+    expect(video.preload).toBe('auto');
+    expect(video.autoplay).toBe(true);
 
     emit(NEAR, video, false);
     emit(VISIBLE, video, false);
-    expect(video.preload).toBe('none');
-    expect(playSpy).not.toHaveBeenCalled();
-
-    emit(NEAR, video, true);
     expect(video.preload).toBe('auto');
+    expect(video.autoplay).toBe(false);
     expect(playSpy).not.toHaveBeenCalled();
+  });
+
+  it('pauses a video that autoplay started before it was known to be off screen', () => {
+    render(<LazyVideo src="a.mp4" muted loop playsInline autoPlay />);
+    const video = container.querySelector('video')!;
+    pausedVideos.set(video, false);
+    emit(VISIBLE, video, false);
+    expect(pauseSpy).toHaveBeenCalledWith(video);
+    expect(video.autoplay).toBe(false);
   });
 
   it('plays while visible and pauses when it leaves', () => {
@@ -172,9 +182,11 @@ describe('LazyVideo', () => {
     expect(new Set(margins).size).toBe(margins.length);
     expect(observerFor(NEAR).targets).toEqual(new Set([first, second]));
 
-    emit(NEAR, first, true);
-    expect(first.preload).toBe('auto');
-    expect(second.preload).toBe('none');
+    expect(observerFor(VISIBLE).targets).toEqual(new Set([first, second]));
+
+    emit(VISIBLE, first, true);
+    expect(playSpy).toHaveBeenCalledWith(first);
+    expect(playSpy).not.toHaveBeenCalledWith(second);
   });
 
   it('falls back to preload and autoplay where IntersectionObserver is missing', () => {
@@ -259,6 +271,31 @@ describe('useLazyVideos on a container', () => {
     });
   });
 
+  it('takes playback over from the autoplay attribute on videos added later', () => {
+    render(
+      <VideoGroup autoPlay selector=".slide video">
+        <div className="slide"><video preload="auto" autoPlay /></div>
+      </VideoGroup>,
+    );
+    const group = container.firstElementChild!;
+    emit(VISIBLE, group, false);
+    expect(group.querySelector('video')!.autoplay).toBe(false);
+
+    const clone = document.createElement('div');
+    clone.className = 'slide';
+    const cloneVideo = document.createElement('video');
+    cloneVideo.autoplay = true;
+    clone.appendChild(cloneVideo);
+    return new Promise<void>((resolve) => {
+      group.appendChild(clone);
+      setTimeout(() => {
+        expect(cloneVideo.autoplay).toBe(false);
+        expect(playSpy).not.toHaveBeenCalled();
+        resolve();
+      });
+    });
+  });
+
   it('only fetches metadata for a preload pool', () => {
     render(
       <VideoGroup preload="metadata">
@@ -319,45 +356,41 @@ describe('Marquee videos', () => {
     return { wrapper, videos: Array.from(container.querySelectorAll('video')) };
   }
 
-  it('server-renders every clone without autoplay and with preload none', () => {
+  it('server-renders every clone with autoplay and full preload, as 1.0.1 did', () => {
     vi.spyOn(console, 'error').mockImplementation(() => {});
     const html = renderToString(<Marquee settings={settings('cover')} content={content} />);
     expect(html.match(/<video/g)?.length).toBe(18);
-    expect(html).not.toContain('autoplay');
-    expect(html.match(/preload="none"/g)?.length).toBe(18);
+    expect(html.match(/autoplay=""/g)?.length).toBe(18);
+    expect(html.match(/preload="auto"/g)?.length).toBe(18);
   });
 
-  it('leaves every clone idle while the marquee is far from the viewport', () => {
+  it('keeps every clone paused while the marquee is far from the viewport', () => {
     const { wrapper, videos } = renderMarquee('fit');
     emit(NEAR, wrapper, false);
     emit(VISIBLE, wrapper, false);
     act(() => vi.advanceTimersByTime(1000));
-    expect(videos.every((video) => video.preload === 'none')).toBe(true);
+    expect(videos.every((video) => video.preload === 'auto')).toBe(true);
+    expect(videos.every((video) => !video.autoplay)).toBe(true);
     expect(playSpy).not.toHaveBeenCalled();
   });
 
-  it('loads clones near the visible strip and plays only the visible ones', () => {
+  it('plays only the visible clones and follows the track', () => {
     const { wrapper, videos } = renderMarquee('cover');
     emit(NEAR, wrapper, true);
     emit(VISIBLE, wrapper, true);
-    expect(videos.map((video) => video.preload)).toEqual([
-      'auto', 'auto', 'auto', 'auto', 'auto',
-      ...Array(videos.length - 5).fill('none'),
-    ]);
+    expect(videos.every((video) => video.preload === 'auto')).toBe(true);
     expect(playSpy.mock.calls.map(([video]) => videos.indexOf(video))).toEqual([0, 1, 2]);
 
     trackOffset = -2 * CARD_WIDTH;
     act(() => vi.advanceTimersByTime(250));
-    expect(videos[6].preload).toBe('auto');
-    expect(videos[7].preload).toBe('none');
     expect(videos.filter((video) => !video.paused).map((video) => videos.indexOf(video))).toEqual([2, 3, 4]);
   });
 
-  it('gives every clone of a fit marquee its metadata for layout', () => {
+  it('plays nothing in a fit marquee that is near but not visible', () => {
     const { wrapper, videos } = renderMarquee('fit');
     emit(NEAR, wrapper, true);
     emit(VISIBLE, wrapper, false);
-    expect(videos.slice(5).every((video) => video.preload === 'metadata')).toBe(true);
+    expect(videos.every((video) => video.preload === 'auto' && !video.autoplay)).toBe(true);
     expect(playSpy).not.toHaveBeenCalled();
   });
 

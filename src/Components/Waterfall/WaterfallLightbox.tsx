@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type React from 'react';
 import { getDisplayedImageRect } from '../utils/getImageRect';
-import { useLazyVideos } from '../utils/useLazyVideos';
 import {
   HiveLightboxTitles,
   type HiveLightboxTextEntry,
@@ -424,13 +423,10 @@ export function collectAllWaterfallMedia(content: WaterfallLightboxContentItem[]
 }
 
 export function PreloadedMediaPool({ mediaList }: { mediaList: WaterfallMedia[] }) {
-  const [pool, setPool] = useState<HTMLDivElement | null>(null);
-  useLazyVideos(pool, { preload: 'metadata' });
   if (mediaList.length === 0) return null;
 
   return (
     <div
-      ref={setPool}
       aria-hidden
       style={{
         position: 'absolute',
@@ -446,7 +442,7 @@ export function PreloadedMediaPool({ mediaList }: { mediaList: WaterfallMedia[] 
           <video
             key={media.url}
             src={media.url}
-            preload='none'
+            preload='auto'
             muted
             playsInline
           />
