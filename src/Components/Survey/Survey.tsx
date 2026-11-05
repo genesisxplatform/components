@@ -173,6 +173,13 @@ function textureVars(P: string, name: string, url: string | null | undefined): R
 
 const STATE_KEYS = ['hover'] as const;
 
+/**
+ * Gradient settings painted on each element, for the editor's on-canvas gradient handles
+ * (`data-gradient-controls`). Every option paints the same gradient, so only the first carries it.
+ */
+const ANSWER_GRADIENT_KEYS = 'answerBgColor answerSelectedBgColor answerBorderColor answerSelectedBorderColor';
+const BUTTON_GRADIENT_KEYS = 'buttonColor buttonBorderColor';
+
 function getCSS(P: string): string {
   return `
 .${P}-wrapper {
@@ -238,6 +245,7 @@ function getCSS(P: string): string {
   box-sizing: border-box;
   border: var(--${P}-bw) solid transparent;
   background: none;
+  -webkit-tap-highlight-color: transparent;
   transition: color var(--${P}-fade) ease, transform 0.15s ease;
 }
 .${P}-wrapper {
@@ -247,6 +255,13 @@ function getCSS(P: string): string {
 .${P}-interactive .${P}-submit:active {
   transform: scale(0.97);
 }
+/*
+ * Layer geometry is built from padding + content-box clipping, never from border-width:
+ * browsers snap border-width down to whole device pixels (padding/inset are not snapped),
+ * so mixing the two misaligns the ring and the texture on rounded corners and opens a
+ * hairline gap at fractional widths/DPRs (common on Android). The texture and fill sit
+ * 1px under the ring so the ring's anti-aliased inner edge never shows the page through.
+ */
 .${P}-layer,
 .${P}-layer::before,
 .${P}-answer::before,
@@ -254,10 +269,10 @@ function getCSS(P: string): string {
   position: absolute;
   inset: calc(-1 * var(--${P}-bw));
   box-sizing: border-box;
-  border: var(--${P}-bw) solid transparent;
+  padding: max(0px, calc(var(--${P}-bw) - 1px));
   border-radius: inherit;
   background-origin: border-box;
-  background-clip: padding-box;
+  background-clip: content-box;
   pointer-events: none;
 }
 .${P}-layer {
@@ -266,6 +281,7 @@ function getCSS(P: string): string {
 }
 .${P}-layer::before {
   content: "";
+  inset: 0;
   background-color: var(--${P}-fill-color);
   background-image: var(--${P}-fill-image);
   background-size: 100% 100%;
@@ -274,7 +290,7 @@ function getCSS(P: string): string {
 .${P}-layer::after {
   content: "";
   position: absolute;
-  inset: calc(-1 * var(--${P}-bw));
+  inset: 0;
   box-sizing: border-box;
   padding: var(--${P}-bw);
   border-radius: inherit;
@@ -483,6 +499,7 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
   const columns = Math.min(2, Math.max(1, Math.floor(Number(answerColumns)) || 1));
   const isInteractive = !isEditor || isPreviewMode;
   const showControls = isEditMode ?? false;
+  const gradientTargetQuestion = isEditor ? items.findIndex(item => (item.answers?.length ?? 0) > 0) : -1;
 
   const spacer = (setting: SpacingSetting, value: number, withControl: boolean, key?: string) => (
     <div
@@ -650,6 +667,7 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
                             role="button"
                             data-selected={isSelected ? 'true' : 'false'}
                             data-label={answer.text ?? ''}
+                            data-gradient-controls={questionIndex === gradientTargetQuestion && answerIndex === 0 ? ANSWER_GRADIENT_KEYS : undefined}
                             aria-pressed={isSelected}
                             tabIndex={isInteractive ? 0 : -1}
                             className={cn(`${P}-answer`, isSelected && `${P}-answer-selected`)}
@@ -690,6 +708,7 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
               target={linkHref.target}
               rel={linkHref.target === '_blank' ? 'noreferrer' : undefined}
               className={cn(`${P}-submit`, buttonWidth === 'full' && `${P}-submit-full`)}
+              data-gradient-controls={isEditor ? BUTTON_GRADIENT_KEYS : undefined}
               style={buttonTypographyCss}
               onClick={handleLinkClick}
             >
@@ -700,6 +719,7 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
             <button
               type="submit"
               className={cn(`${P}-submit`, buttonWidth === 'full' && `${P}-submit-full`)}
+              data-gradient-controls={isEditor ? BUTTON_GRADIENT_KEYS : undefined}
               style={buttonTypographyCss}
               tabIndex={isInteractive ? undefined : -1}
             >
