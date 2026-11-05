@@ -44,16 +44,37 @@ function createColorProperty(title: string) {
   };
 }
 
+function createFillProperty(title: string) {
+  return {
+    type: 'string' as const,
+    scope: 'common' as const,
+    title,
+    display: { type: 'palette-color-picker' as const, gradient: true },
+  };
+}
+
+function createTextureProperty(title: string) {
+  return {
+    type: ['string', 'null'] as const,
+    scope: 'common' as const,
+    title,
+    display: { type: 'settings-image-input' as const },
+  };
+}
+
 const paletteBookmarkItems = [
   'questionColor',
   'answerColor',
   'answerSelectedColor',
   'answerBgColor',
   'answerSelectedBgColor',
+  'answerBorderColor',
+  'answerSelectedBorderColor',
   'iconColor',
   'iconSelectedColor',
   'buttonColor',
   'buttonTextColor',
+  'buttonBorderColor',
 ] as const;
 
 const defaultIcon = (url: string) => ({ objectFit: 'contain', url, name: '' });
@@ -150,6 +171,10 @@ const schema: ComponentSchemaV1 = {
       buttonPaddingTop: createSpacingLayoutProperty('Button Top'),
       answerRadius: createNumericLayoutProperty('radius'),
       buttonRadius: createNumericLayoutProperty('Radius'),
+      answerBorderWidth: createNumericLayoutProperty('Stroke'),
+      buttonBorderWidth: createNumericLayoutProperty('Stroke'),
+      answerTexture: createTextureProperty('Texture'),
+      buttonTexture: createTextureProperty('Texture'),
       answerPadding: {
         type: 'object' as const,
         scope: 'layout' as const,
@@ -169,6 +194,12 @@ const schema: ComponentSchemaV1 = {
         display: { type: 'toggle-cycle', enum: ['left', 'center', 'right'] },
       },
       answerWidth: createNumericLayoutProperty('Width'),
+      answerColumns: {
+        type: 'string',
+        scope: 'layout',
+        title: 'Columns',
+        display: { type: 'toggle-cycle', enum: ['1', '2'] },
+      },
       buttonWidth: {
         type: 'string',
         scope: 'layout',
@@ -179,12 +210,15 @@ const schema: ComponentSchemaV1 = {
       questionColor: createColorProperty('Heading'),
       answerColor: createColorProperty('Option Default'),
       answerSelectedColor: createColorProperty('Option Selected'),
-      answerBgColor: createColorProperty('Option BG Default'),
-      answerSelectedBgColor: createColorProperty('Option BG Selected'),
+      answerBgColor: createFillProperty('Option BG Default'),
+      answerSelectedBgColor: createFillProperty('Option BG Selected'),
+      answerBorderColor: createFillProperty('Option Border Default'),
+      answerSelectedBorderColor: createFillProperty('Option Border Selected'),
       iconColor: createColorProperty('Icon Default'),
       iconSelectedColor: createColorProperty('Icon Selected'),
-      buttonColor: createColorProperty('Button Fill'),
+      buttonColor: createFillProperty('Button Fill'),
       buttonTextColor: createColorProperty('Button Label'),
+      buttonBorderColor: createFillProperty('Button Border'),
       questionFontFamily: {
         type: 'string',
         scope: 'common',
@@ -305,10 +339,15 @@ const schema: ComponentSchemaV1 = {
       answerSelectedColor: '#FFFFFF',
       answerBgColor: '#FFFFFF',
       answerSelectedBgColor: '#947506',
+      answerBorderColor: '#000000',
+      answerSelectedBorderColor: '#947506',
       iconColor: '#000000',
       iconSelectedColor: '#FFFFFF',
       buttonColor: '#000000',
       buttonTextColor: '#FFFFFF',
+      buttonBorderColor: '#000000',
+      answerTexture: null,
+      buttonTexture: null,
       questionFontFamily: 'Inter',
       questionFontSettings: { fontWeight: 500, fontStyle: 'normal' },
       questionLetterSpacing: 0,
@@ -340,6 +379,7 @@ const schema: ComponentSchemaV1 = {
     layoutDefaults: {
       m: {
         answerWidth: 0.65,
+        answerColumns: '1',
         questionGap: 0.0853,
         questionAnswersGap: 0.09,
         answerGap: 0.0266,
@@ -348,6 +388,8 @@ const schema: ComponentSchemaV1 = {
         answerPadding: {top: 0.0266, right: 0.0266, bottom: 0.0266, left: 0.0266},
         answerRadius: 0.5,
         buttonRadius: 0.5,
+        answerBorderWidth: 0,
+        buttonBorderWidth: 0,
         align: 'center',
         buttonWidth: 'full',
         iconSize: 0.0533,
@@ -361,6 +403,7 @@ const schema: ComponentSchemaV1 = {
       },
       t: {
         answerWidth: 0.651041,
+        answerColumns: '1',
         questionGap: 0.0390625,
         questionAnswersGap: 0.0130208,
         answerGap: 0.0130208,
@@ -369,6 +412,8 @@ const schema: ComponentSchemaV1 = {
         answerPadding: {top: 0, right: 0, bottom: 0, left: 0},
         answerRadius: 0,
         buttonRadius: 0,
+        answerBorderWidth: 0,
+        buttonBorderWidth: 0,
         align: 'left',
         buttonWidth: 'auto',
         iconSize: 0.02604166,
@@ -382,6 +427,7 @@ const schema: ComponentSchemaV1 = {
       },
       d: {
         answerWidth: 0.5,
+        answerColumns: '1',
         questionGap: 0.0222,
         questionAnswersGap: 0.00833,
         answerGap: 0.00833,
@@ -390,6 +436,8 @@ const schema: ComponentSchemaV1 = {
         answerPadding: {top: 0, right: 0, bottom: 0, left: 0},
         answerRadius: 0,
         buttonRadius: 0,
+        answerBorderWidth: 0,
+        buttonBorderWidth: 0,
         align: 'left',
         buttonWidth: 'auto',
         iconSize: 0.01388,
@@ -416,10 +464,27 @@ const schema: ComponentSchemaV1 = {
       'answerPadding',
       'answerRadius',
       'buttonRadius',
+      'answerBorderWidth',
+      'buttonBorderWidth',
       'buttonPadding',
       'align',
       'answerWidth',
+      'answerColumns',
       'buttonWidth',
+    ],
+    displayRules: [
+      {
+        if: { name: 'answerBorderWidth', value: 0 },
+        then: { name: 'properties.answerBorderColor.display.visible', value: false },
+      },
+      {
+        if: { name: 'answerBorderWidth', value: 0 },
+        then: { name: 'properties.answerSelectedBorderColor.display.visible', value: false },
+      },
+      {
+        if: { name: 'buttonBorderWidth', value: 0 },
+        then: { name: 'properties.buttonBorderColor.display.visible', value: false },
+      },
     ],
   },
   panels: [
@@ -432,10 +497,13 @@ const schema: ComponentSchemaV1 = {
         '__componentName__',
         { type: 'row', title: '', items: ['selectionCount', 'align'] },
         { type: 'row', title: 'Option', items: ['answerWidth', 'iconSize'] },
+        { type: 'row', title: '', items: ['answerColumns'] },
         { type: 'row', title: '', items: ['answerPadding', 'answerRadius'] },
-        { type: 'row', title: '', items: ['iconGap'] },
+        { type: 'row', title: '', items: ['iconGap', 'answerBorderWidth'] },
+        { type: 'row', title: '', items: ['answerTexture'] },
         { type: 'row', title: 'Button', items: ['buttonRadius', 'buttonWidth'] },
-        { type: 'row', title: '', items: ['buttonPadding'] },
+        { type: 'row', title: '', items: ['buttonPadding', 'buttonBorderWidth'] },
+        { type: 'row', title: '', items: ['buttonTexture'] },
         { type: 'row', title: '', items: ['submitLabel'] },
         { type: 'row', title: '', items: ['submitLink'] },
       ],
@@ -507,7 +575,7 @@ export const SurveyComponent = {
   },
   assetsPaths: {
     content: [{ path: 'answers.icon.url' }],
-    parameters: [],
+    parameters: [{ path: 'answerTexture' }, { path: 'buttonTexture' }],
   },
   fontSettingsPaths: {
     content: [],

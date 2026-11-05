@@ -64,10 +64,15 @@ type SurveySettings = {
   buttonPadding?: Padding;
   answerRadius?: number;
   buttonRadius?: number;
+  answerBorderWidth?: number;
+  buttonBorderWidth?: number;
+  answerTexture?: string | null;
+  buttonTexture?: string | null;
   /** Aligns the question, the answers column and the button together. */
   align?: Align;
   /** Width of the answers column, independent of the block width. */
   answerWidth?: number;
+  answerColumns?: '1' | '2';
   buttonWidth?: 'auto' | 'full';
   iconSize?: number;
   questionColor?: string;
@@ -75,10 +80,13 @@ type SurveySettings = {
   answerSelectedColor?: string;
   answerBgColor?: string;
   answerSelectedBgColor?: string;
+  answerBorderColor?: string;
+  answerSelectedBorderColor?: string;
   iconColor?: string;
   iconSelectedColor?: string;
   buttonColor?: string;
   buttonTextColor?: string;
+  buttonBorderColor?: string;
   questionFontFamily?: string;
   questionFontSettings?: FontSettings;
   questionFontSize?: number;
@@ -125,24 +133,43 @@ type ColorKeys =
   | 'questionColor'
   | 'answerColor'
   | 'answerSelectedColor'
-  | 'answerBgColor'
-  | 'answerSelectedBgColor'
   | 'iconColor'
   | 'iconSelectedColor'
-  | 'buttonColor'
-  | 'buttonTextColor';
+  | 'buttonTextColor'
+  | 'answerBorderColor'
+  | 'answerSelectedBorderColor'
+  | 'buttonBorderColor';
 
 const COLOR_VAR_MAP: Record<ColorKeys, string> = {
   questionColor: 'question-color',
   answerColor: 'answer-color',
   answerSelectedColor: 'answer-selected-color',
-  answerBgColor: 'answer-bg-color',
-  answerSelectedBgColor: 'answer-selected-bg-color',
   iconColor: 'icon-color',
   iconSelectedColor: 'icon-selected-color',
-  buttonColor: 'button-color',
   buttonTextColor: 'button-text-color',
+  answerBorderColor: 'answer-border-color',
+  answerSelectedBorderColor: 'answer-selected-border-color',
+  buttonBorderColor: 'button-border-color',
 };
+
+const GRADIENT_RE = /(^|[\s,])(repeating-)?(linear|radial|conic)-gradient\(/i;
+
+function isGradient(value: string): boolean {
+  return GRADIENT_RE.test(value);
+}
+
+function fillVars(P: string, name: string, value: string): Record<string, string> {
+  const gradient = isGradient(value);
+  return {
+    [`--${P}-${name}-color`]: gradient ? 'transparent' : value,
+    [`--${P}-${name}-image`]: gradient ? value : 'none',
+  };
+}
+
+/** The texture sits under the fill, so the fill color's own alpha decides how much of it shows. */
+function textureVars(P: string, name: string, url: string | null | undefined): Record<string, string> {
+  return { [`--${P}-${name}-texture`]: url ? `url("${url.replace(/"/g, '%22')}")` : 'none' };
+}
 
 const STATE_KEYS = ['hover'] as const;
 
@@ -193,30 +220,123 @@ function getCSS(P: string): string {
   max-width: 100%;
   align-self: var(--${P}-align-self);
 }
+/* Flex, not grid, so a short last row (an odd answer in 2 columns) sits centered. */
+.${P}-answer-row {
+  display: flex;
+  justify-content: center;
+  column-gap: var(--${P}-answer-gap);
+}
+.${P}-answer-row > .${P}-answer {
+  flex: 0 0 auto;
+  width: calc((100% - (var(--${P}-columns) - 1) * var(--${P}-answer-gap)) / var(--${P}-columns));
+  min-width: 0;
+}
+.${P}-answer,
+.${P}-submit {
+  position: relative;
+  isolation: isolate;
+  box-sizing: border-box;
+  border: var(--${P}-bw) solid transparent;
+  background: none;
+  transition: color var(--${P}-fade) ease, transform 0.15s ease;
+}
+.${P}-wrapper {
+  --${P}-fade: 0.25s;
+}
+.${P}-interactive .${P}-answer:active,
+.${P}-interactive .${P}-submit:active {
+  transform: scale(0.97);
+}
+.${P}-layer,
+.${P}-layer::before,
+.${P}-answer::before,
+.${P}-submit::before {
+  position: absolute;
+  inset: calc(-1 * var(--${P}-bw));
+  box-sizing: border-box;
+  border: var(--${P}-bw) solid transparent;
+  border-radius: inherit;
+  background-origin: border-box;
+  background-clip: padding-box;
+  pointer-events: none;
+}
+.${P}-layer {
+  z-index: -2;
+  transition: opacity var(--${P}-fade) ease;
+}
+.${P}-layer::before {
+  content: "";
+  background-color: var(--${P}-fill-color);
+  background-image: var(--${P}-fill-image);
+  background-size: 100% 100%;
+  background-repeat: no-repeat;
+}
+.${P}-layer::after {
+  content: "";
+  position: absolute;
+  inset: calc(-1 * var(--${P}-bw));
+  box-sizing: border-box;
+  padding: var(--${P}-bw);
+  border-radius: inherit;
+  background: var(--${P}-ring);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box exclude, linear-gradient(#000 0 0);
+}
+.${P}-answer::before,
+.${P}-submit::before {
+  content: "";
+  z-index: -3;
+  background-image: var(--${P}-texture);
+  background-size: cover;
+  background-repeat: no-repeat;
+  background-position: center;
+}
+.${P}-layer-selected {
+  --${P}-fill-color: var(--${P}-answer-selected-bg-color);
+  --${P}-fill-image: var(--${P}-answer-selected-bg-image);
+  --${P}-ring: var(--${P}-answer-selected-border-color);
+  opacity: 0;
+}
+.${P}-answer-selected .${P}-layer {
+  opacity: 0;
+}
+.${P}-answer-selected .${P}-layer-selected {
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .${P}-wrapper {
+    --${P}-fade: 0s;
+  }
+  .${P}-interactive .${P}-answer:active,
+  .${P}-interactive .${P}-submit:active {
+    transform: none;
+  }
+}
 .${P}-answer {
+  --${P}-bw: var(--${P}-answer-border-width);
+  --${P}-fill-color: var(--${P}-answer-bg-color);
+  --${P}-fill-image: var(--${P}-answer-bg-image);
+  --${P}-ring: var(--${P}-answer-border-color);
+  --${P}-texture: var(--${P}-answer-texture);
   display: flex;
   align-items: center;
   justify-content: var(--${P}-align-self);
   gap: var(--${P}-icon-gap);
-  box-sizing: border-box;
   margin: 0;
   padding: var(--${P}-answer-padding);
-  border: none;
   border-radius: var(--${P}-answer-radius);
-  background-color: var(--${P}-answer-bg-color);
   text-align: var(--${P}-align);
   text-decoration: none;
   font: inherit;
   color: var(--${P}-answer-color);
   cursor: default;
-  transition: color 0.2s ease, background-color 0.2s ease;
 }
 .${P}-interactive .${P}-answer {
   cursor: pointer;
 }
 .${P}-answer-selected {
   color: var(--${P}-answer-selected-color);
-  background-color: var(--${P}-answer-selected-bg-color);
 }
 .${P}-answer-icon {
   flex: 0 0 auto;
@@ -236,16 +356,18 @@ function getCSS(P: string): string {
   overflow-wrap: break-word;
 }
 .${P}-submit {
-  box-sizing: border-box;
+  --${P}-bw: var(--${P}-button-border-width);
+  --${P}-fill-color: var(--${P}-button-bg-color);
+  --${P}-fill-image: var(--${P}-button-bg-image);
+  --${P}-ring: var(--${P}-button-border-color);
+  --${P}-texture: var(--${P}-button-texture);
   align-self: var(--${P}-align-self);
   max-width: 100%;
   margin: 0;
   padding: var(--${P}-button-padding, 0.6em 1.2em);
-  border: none;
   border-radius: var(--${P}-button-radius);
   text-align: center;
   text-decoration: none;
-  background: var(--${P}-button-color);
   color: var(--${P}-button-text-color);
   cursor: default;
 }
@@ -314,8 +436,13 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
     buttonPadding,
     answerRadius = 0,
     buttonRadius = 0,
+    answerBorderWidth = 0,
+    buttonBorderWidth = 0,
+    answerTexture,
+    buttonTexture,
     align = 'left',
     answerWidth,
+    answerColumns = '1',
     buttonWidth = 'auto',
     iconSize = 0.01388,
     questionColor = '#000000',
@@ -323,10 +450,13 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
     answerSelectedColor = '#A60239',
     answerBgColor = '#FFFFFF00',
     answerSelectedBgColor = '#FFFFFF00',
+    answerBorderColor = '#000000',
+    answerSelectedBorderColor = '#A60239',
     iconColor = '#000000',
     iconSelectedColor = '#A60239',
     buttonColor = '#000000',
     buttonTextColor = '#FFFFFF',
+    buttonBorderColor = '#000000',
     questionFontFamily,
     questionFontSettings,
     questionFontSize,
@@ -350,6 +480,7 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
     buttonTextAppearance,
   } = settings;
   const items = content ?? [];
+  const columns = Math.min(2, Math.max(1, Math.floor(Number(answerColumns)) || 1));
   const isInteractive = !isEditor || isPreviewMode;
   const showControls = isEditMode ?? false;
 
@@ -441,26 +572,37 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
     isEditor,
   ));
 
-  const colorVars = buildColorVars(P, {
-    questionColor,
-    answerColor,
-    answerSelectedColor,
-    answerBgColor,
-    answerSelectedBgColor,
-    iconColor,
-    iconSelectedColor,
-    buttonColor,
-    buttonTextColor,
-  }, COLOR_VAR_MAP, STATE_KEYS);
+  const colorVars = {
+    ...buildColorVars(P, {
+      questionColor,
+      answerColor,
+      answerSelectedColor,
+      iconColor,
+      iconSelectedColor,
+      buttonTextColor,
+      answerBorderColor,
+      answerSelectedBorderColor,
+      buttonBorderColor,
+    }, COLOR_VAR_MAP, STATE_KEYS),
+    ...fillVars(P, 'answer-bg', answerBgColor),
+    ...fillVars(P, 'answer-selected-bg', answerSelectedBgColor),
+    ...fillVars(P, 'button-bg', buttonColor),
+    ...textureVars(P, 'answer', answerTexture),
+    ...textureVars(P, 'button', buttonTexture),
+  } as React.CSSProperties;
 
   const stateClass = activeEvent && activeEvent !== 'default' ? `${P}-state-${activeEvent}` : '';
   const scopedCss = useMemo(() => getCSS(P), [P]);
   const wrapperStyleVars = {
     [`--${P}-icon-gap`]: scalingValue(iconGap, isEditor ?? false),
+    [`--${P}-answer-gap`]: scalingValue(answerGap, isEditor ?? false),
+    [`--${P}-columns`]: String(columns),
     [`--${P}-answer-padding`]: paddingToCss(answerPadding, isEditor),
     ...(buttonPadding ? { [`--${P}-button-padding`]: paddingToCss(buttonPadding, isEditor) } : {}),
     [`--${P}-answer-radius`]: scalingValue(answerRadius, isEditor ?? false),
     [`--${P}-button-radius`]: scalingValue(buttonRadius, isEditor ?? false),
+    [`--${P}-answer-border-width`]: scalingValue(answerBorderWidth, isEditor ?? false),
+    [`--${P}-button-border-width`]: scalingValue(buttonBorderWidth, isEditor ?? false),
     [`--${P}-align`]: align,
     [`--${P}-align-self`]: FLEX_ALIGN[align],
     [`--${P}-answer-width`]: answerWidth !== undefined ? scalingValue(answerWidth, isEditor ?? false) : '100%',
@@ -495,41 +637,48 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
                   role="group"
                   aria-labelledby={item.question ? questionId : undefined}
                 >
-                  {answers.map((answer, answerIndex) => {
-                    const isSelected = selectedAnswers.includes(answerIndex);
-                    const iconUrl = answer.icon?.url;
-                    return [
-                      answerIndex > 0 && spacer('answerGap', answerGap, questionIndex === 0 && answerIndex === 1, `gap-${answerIndex}`),
-                      <a
-                        key={answerIndex}
-                        role="button"
-                        data-selected={isSelected ? 'true' : 'false'}
-                        data-label={answer.text ?? ''}
-                        aria-pressed={isSelected}
-                        tabIndex={isInteractive ? 0 : -1}
-                        className={cn(`${P}-answer`, isSelected && `${P}-answer-selected`)}
-                        style={answerTypographyCss}
-                        onClick={() => toggleAnswer(questionIndex, answerIndex)}
-                        onKeyDown={(e) => {
-                          // An <a> without href doesn't activate on Enter/Space by itself.
-                          if (e.key !== 'Enter' && e.key !== ' ') return;
-                          e.preventDefault();
-                          toggleAnswer(questionIndex, answerIndex);
-                        }}
-                      >
-                        {iconUrl && (
-                          <span className={cn(`${P}-answer-icon`, answer.iconPosition === 'after' && `${P}-answer-icon-after`)}>
-                            <SvgImage
-                              url={iconUrl}
-                              fill={`var(--${P}-icon-fill)`}
-                              hoverFill={`var(--${P}-icon-fill)`}
-                            />
-                          </span>
-                        )}
-                        {answer.text && <span className={`${P}-answer-text`}>{answer.text}</span>}
-                      </a>,
-                    ];
-                  })}
+                  {Array.from({ length: Math.ceil(answers.length / columns) }, (_, rowIndex) => [
+                    rowIndex > 0 && spacer('answerGap', answerGap, questionIndex === 0 && rowIndex === 1, `gap-${rowIndex}`),
+                    <div key={rowIndex} className={`${P}-answer-row`}>
+                      {answers.slice(rowIndex * columns, (rowIndex + 1) * columns).map((answer, indexInRow) => {
+                        const answerIndex = rowIndex * columns + indexInRow;
+                        const isSelected = selectedAnswers.includes(answerIndex);
+                        const iconUrl = answer.icon?.url;
+                        return (
+                          <a
+                            key={answerIndex}
+                            role="button"
+                            data-selected={isSelected ? 'true' : 'false'}
+                            data-label={answer.text ?? ''}
+                            aria-pressed={isSelected}
+                            tabIndex={isInteractive ? 0 : -1}
+                            className={cn(`${P}-answer`, isSelected && `${P}-answer-selected`)}
+                            style={answerTypographyCss}
+                            onClick={() => toggleAnswer(questionIndex, answerIndex)}
+                            onKeyDown={(e) => {
+                              // An <a> without href doesn't activate on Enter/Space by itself.
+                              if (e.key !== 'Enter' && e.key !== ' ') return;
+                              e.preventDefault();
+                              toggleAnswer(questionIndex, answerIndex);
+                            }}
+                          >
+                            <span aria-hidden className={`${P}-layer`} />
+                            <span aria-hidden className={cn(`${P}-layer`, `${P}-layer-selected`)} />
+                            {iconUrl && (
+                              <span className={cn(`${P}-answer-icon`, answer.iconPosition === 'after' && `${P}-answer-icon-after`)}>
+                                <SvgImage
+                                  url={iconUrl}
+                                  fill={`var(--${P}-icon-fill)`}
+                                  hoverFill={`var(--${P}-icon-fill)`}
+                                />
+                              </span>
+                            )}
+                            {answer.text && <span className={`${P}-answer-text`}>{answer.text}</span>}
+                          </a>
+                        );
+                      })}
+                    </div>,
+                  ])}
                 </div>
               </div>
             );
@@ -544,6 +693,7 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
               style={buttonTypographyCss}
               onClick={handleLinkClick}
             >
+              <span aria-hidden className={`${P}-layer`} />
               {submitLabel}
             </a>
           ) : (
@@ -553,6 +703,7 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
               style={buttonTypographyCss}
               tabIndex={isInteractive ? undefined : -1}
             >
+              <span aria-hidden className={`${P}-layer`} />
               {submitLabel}
             </button>
           )}
