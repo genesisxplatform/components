@@ -151,6 +151,15 @@ const schema: ComponentSchemaV1 = {
         title: 'Selection',
         display: { type: 'toggle-cycle', enum: ['one', 'many'] },
       },
+      maxSelections: {
+        type: 'number',
+        scope: 'common',
+        title: 'Max',
+        tooltip: 'How many options can be selected per question',
+        display: { type: 'common-numeric-input' },
+        min: 1,
+        max: 99,
+      },
       submitLabel: {
         type: 'string',
         scope: 'common',
@@ -333,6 +342,7 @@ const schema: ComponentSchemaV1 = {
     },
     defaults: {
       selectionCount: 'one',
+      maxSelections: 2,
       submitLabel: 'Submit',
       questionColor: '#000000',
       answerColor: '#000000',
@@ -453,6 +463,7 @@ const schema: ComponentSchemaV1 = {
     layout: [
       '__componentName__',
       'selectionCount',
+      'maxSelections',
       'submitLabel',
       'submitLink',
       'questionGap',
@@ -473,6 +484,10 @@ const schema: ComponentSchemaV1 = {
       'buttonWidth',
     ],
     displayRules: [
+      {
+        if: { name: 'selectionCount', value: 'many', isNotEqual: true },
+        then: { name: 'properties.maxSelections.display.visible', value: false },
+      },
       {
         if: { name: 'answerBorderWidth', value: 0 },
         then: { name: 'properties.answerBorderColor.display.visible', value: false },
@@ -496,6 +511,7 @@ const schema: ComponentSchemaV1 = {
       layout: [
         '__componentName__',
         { type: 'row', title: '', items: ['selectionCount', 'align'] },
+        { type: 'row', title: '', items: ['maxSelections'] },
         { type: 'row', title: 'Option', items: ['answerWidth', 'iconSize'] },
         { type: 'row', title: '', items: ['answerColumns'] },
         { type: 'row', title: '', items: ['answerPadding', 'answerRadius'] },

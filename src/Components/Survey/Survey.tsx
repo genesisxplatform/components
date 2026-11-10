@@ -53,6 +53,8 @@ const FLEX_ALIGN: Record<Align, string> = { left: 'flex-start', center: 'center'
 
 type SurveySettings = {
   selectionCount?: 'one' | 'many';
+  /** Per-question cap when `selectionCount` is `many`; missing or < 1 means no cap. */
+  maxSelections?: number;
   submitLabel?: string;
   submitLink?: SurveyLink | null;
   questionGap?: number;
@@ -351,6 +353,12 @@ function getCSS(P: string): string {
 .${P}-interactive .${P}-answer {
   cursor: pointer;
 }
+.${P}-interactive .${P}-answer-locked {
+  cursor: not-allowed;
+}
+.${P}-interactive .${P}-answer-locked:active {
+  transform: none;
+}
 .${P}-answer-selected {
   color: var(--${P}-answer-selected-color);
 }
@@ -441,6 +449,7 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
   const { prefix: P } = useScopedStyles();
   const {
     selectionCount = 'one',
+    maxSelections,
     submitLabel = 'Submit',
     submitLink: link,
     questionGap = 0.0222,
@@ -496,6 +505,9 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
     buttonTextAppearance,
   } = settings;
   const items = content ?? [];
+  const selectionLimit = selectionCount === 'one'
+    ? 1
+    : (typeof maxSelections === 'number' && maxSelections >= 1 ? Math.floor(maxSelections) : Infinity);
   const columns = Math.min(2, Math.max(1, Math.floor(Number(answerColumns)) || 1));
   const isInteractive = !isEditor || isPreviewMode;
   const showControls = isEditMode ?? false;
@@ -514,7 +526,7 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
 
   useEffect(() => {
     setSelected(items.map(() => []));
-  }, [items.length, selectionCount]);
+  }, [items.length, selectionCount, selectionLimit]);
 
   const toggleAnswer = (questionIndex: number, answerIndex: number) => {
     if (!isInteractive) return;
@@ -523,10 +535,12 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
       const current = next[questionIndex];
       if (selectionCount === 'one') {
         next[questionIndex] = current.includes(answerIndex) ? [] : [answerIndex];
+      } else if (current.includes(answerIndex)) {
+        next[questionIndex] = current.filter(i => i !== answerIndex);
+      } else if (current.length < selectionLimit) {
+        next[questionIndex] = [...current, answerIndex];
       } else {
-        next[questionIndex] = current.includes(answerIndex)
-          ? current.filter(i => i !== answerIndex)
-          : [...current, answerIndex];
+        return prev;
       }
       return next;
     });
@@ -639,6 +653,8 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
           {items.map((item, questionIndex) => {
             const answers = item.answers ?? [];
             const selectedAnswers = selected[questionIndex] ?? [];
+            // In `one` mode a click swaps the choice, so only a capped `many` locks options.
+            const isAtLimit = selectionCount === 'many' && selectedAnswers.length >= selectionLimit;
             const questionId = `${P}-question-${questionIndex}`;
             return (
               <div key={questionIndex} className={`${P}-question-block`}>
@@ -660,6 +676,7 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
                       {answers.slice(rowIndex * columns, (rowIndex + 1) * columns).map((answer, indexInRow) => {
                         const answerIndex = rowIndex * columns + indexInRow;
                         const isSelected = selectedAnswers.includes(answerIndex);
+                        const isLocked = isAtLimit && !isSelected;
                         const iconUrl = answer.icon?.url;
                         return (
                           <a
@@ -669,8 +686,9 @@ export function Survey({ settings, content, isEditor, isPreviewMode, isEditMode,
                             data-label={answer.text ?? ''}
                             data-gradient-controls={questionIndex === gradientTargetQuestion && answerIndex === 0 ? ANSWER_GRADIENT_KEYS : undefined}
                             aria-pressed={isSelected}
+                            aria-disabled={isLocked || undefined}
                             tabIndex={isInteractive ? 0 : -1}
-                            className={cn(`${P}-answer`, isSelected && `${P}-answer-selected`)}
+                            className={cn(`${P}-answer`, isSelected && `${P}-answer-selected`, isLocked && `${P}-answer-locked`)}
                             style={answerTypographyCss}
                             onClick={() => toggleAnswer(questionIndex, answerIndex)}
                             onKeyDown={(e) => {
