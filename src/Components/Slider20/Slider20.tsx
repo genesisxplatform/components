@@ -6,6 +6,8 @@ import { SvgImage } from '../helpers/SvgImage/SvgImage';
 import { CommonComponentProps } from '../props';
 import { textStylesToCss, type TextStyles } from '../utils/textStylesToCss';
 import { useScopedStyles } from '../utils/useScopedStyles';
+import { SimpleButton } from '../SimpleButton/SimpleButton';
+import type { GeneralLink } from '../../types/GeneralLink';
 
 type Slider20Item = {
   image: {
@@ -14,6 +16,7 @@ type Slider20Item = {
     objectFit?: 'cover' | 'contain';
   };
   imageCaption: any[];
+  link?: GeneralLink | null;
 };
 
 type Slider20TriggerType = 'click' | 'drag' | 'auto';
@@ -28,8 +31,58 @@ type Slider20Transition = 'slide' | 'fade in' | 'reveal';
 type Slider20Nav = 'classic' | 'no';
 type Slider20NavSize = 's' | 'm' | 'l';
 type Slider20ControlsShow = 'always' | 'on hover' | 'never';
+type Slider20Variant = 'a' | 'b';
 
-type Slider20Settings = {
+type SimpleButtonSettings = React.ComponentProps<typeof SimpleButton>['settings'];
+type BoxSides = { top: number; right: number; bottom: number; left: number };
+
+type Slider20ButtonColorKey =
+  | 'buttonBackgroundColor'
+  | 'buttonTextColor'
+  | 'buttonBorderColor'
+  | 'buttonIconColor'
+  | 'buttonBoxShadowColor'
+  | 'buttonInnerBoxShadowColor';
+
+type Slider20ButtonSettings = {
+  buttonType?: 'a' | 'b' | 'c';
+  buttonLabel?: string;
+  buttonIcon?: string | null;
+  // Where the button sits under the slider. Not a SimpleButton setting.
+  buttonPosition?: 'left' | 'center' | 'right';
+  buttonAlignment?: 'left' | 'center' | 'right';
+  buttonAlignA?: 'left' | 'center' | 'right';
+  buttonOrder?: 'text-icon' | 'icon-text';
+  buttonGap?: number;
+  buttonIconSize?: number;
+  buttonIconWidthC?: number;
+  buttonDimensions?: boolean;
+  buttonPadding?: BoxSides;
+  buttonCornerRadius?: number;
+  buttonBoxShadow?: BoxSides;
+  buttonInnerBoxShadow?: BoxSides;
+  buttonStroke?: number;
+  buttonBlur?: number;
+  buttonHoverEffect?: SimpleButtonSettings['hoverEffect'];
+  buttonMinWidth?: number;
+  buttonMinHeight?: number;
+  buttonWidth?: number;
+  buttonHeight?: number;
+  buttonFontFamily?: string;
+  buttonFontSettings?: {
+    fontWeight?: number;
+    fontStyle?: string;
+  };
+  buttonFontSize?: number;
+  buttonLineHeight?: number;
+  buttonLetterSpacing?: number;
+  buttonWordSpacing?: number;
+  buttonTextAppearance?: SimpleButtonSettings['textAppearance'];
+  stateOverrides?: Record<string, Partial<Record<Slider20ButtonColorKey, string>>>;
+} & Partial<Record<Slider20ButtonColorKey, string>>;
+
+type Slider20Settings = Slider20ButtonSettings & {
+  type?: Slider20Variant;
   trigger?: Slider20Trigger;
   direction?: Slider20Direction;
   transition?: Slider20Transition;
@@ -71,6 +124,11 @@ type Slider20Props = {
   isEditor?: boolean;
   isPreviewMode?: boolean;
   isEditMode?: boolean;
+  activeEvent?: string;
+  /** Host-provided (SDK) resolution of the button link: url and anchor become a real href. */
+  getLinkHref?: (link: GeneralLink) => { href: string; target?: '_blank' } | undefined;
+  /** Host-provided scene transition for a scene link. */
+  onNavigate?: (link: GeneralLink) => void;
 } & CommonComponentProps;
 
 type Offset = { x: number; y: number };
@@ -184,6 +242,93 @@ function resolveTitleStyle(settings: Slider20Settings | undefined, isEditor?: bo
     color: settings?.titleColor ?? '#000000',
   };
   return textStylesToCss(textStyles, isEditor);
+}
+
+const BUTTON_COLOR_KEY_MAP: Record<Slider20ButtonColorKey, keyof SimpleButtonSettings & string> = {
+  buttonBackgroundColor: 'backgroundColor',
+  buttonTextColor: 'textColor',
+  buttonBorderColor: 'borderColor',
+  buttonIconColor: 'iconColor',
+  buttonBoxShadowColor: 'boxShadowColor',
+  buttonInnerBoxShadowColor: 'innerBoxShadowColor',
+};
+
+// Fallbacks for sliders saved before the button existed (they have no button layout values).
+// Same unit as the saved settings: new sliders get layoutDefaults.m, so sizes are divided by 375.
+const BUTTON_FALLBACK_UNIT = 375;
+const BUTTON_FALLBACKS = {
+  label: 'Button',
+  padding: {
+    top: 10 / BUTTON_FALLBACK_UNIT,
+    right: 20 / BUTTON_FALLBACK_UNIT,
+    bottom: 10 / BUTTON_FALLBACK_UNIT,
+    left: 20 / BUTTON_FALLBACK_UNIT,
+  },
+  cornerRadius: 20 / BUTTON_FALLBACK_UNIT,
+  fontSize: 16 / BUTTON_FALLBACK_UNIT,
+  lineHeight: 16 / BUTTON_FALLBACK_UNIT,
+  backgroundColor: '#2E12F0',
+};
+
+function toSimpleButtonSettings(settings: Slider20Settings | undefined): SimpleButtonSettings {
+  const s = settings ?? {};
+  const stateOverrides: NonNullable<SimpleButtonSettings['stateOverrides']> = {};
+  for (const [state, overrides] of Object.entries(s.stateOverrides ?? {})) {
+    const mapped: Record<string, string> = {};
+    for (const [key, value] of Object.entries(overrides ?? {})) {
+      const target = BUTTON_COLOR_KEY_MAP[key as Slider20ButtonColorKey];
+      if (target && value !== undefined) mapped[target] = value;
+    }
+    stateOverrides[state] = mapped;
+  }
+  return {
+    type: s.buttonType ?? 'a',
+    label: s.buttonLabel ?? BUTTON_FALLBACKS.label,
+    icon: s.buttonIcon,
+    alignment: s.buttonAlignment,
+    alignA: s.buttonAlignA,
+    order: s.buttonOrder,
+    gap: s.buttonGap,
+    iconSize: s.buttonIconSize,
+    iconWidthC: s.buttonIconWidthC,
+    dimensions: s.buttonDimensions,
+    padding: s.buttonPadding ?? BUTTON_FALLBACKS.padding,
+    cornerRadius: s.buttonCornerRadius ?? BUTTON_FALLBACKS.cornerRadius,
+    boxShadow: s.buttonBoxShadow,
+    innerBoxShadow: s.buttonInnerBoxShadow,
+    stroke: s.buttonStroke,
+    blur: s.buttonBlur,
+    hoverEffect: s.buttonHoverEffect,
+    minWidth: s.buttonMinWidth,
+    minHeight: s.buttonMinHeight,
+    width: s.buttonWidth,
+    height: s.buttonHeight,
+    backgroundColor: s.buttonBackgroundColor ?? BUTTON_FALLBACKS.backgroundColor,
+    textColor: s.buttonTextColor,
+    borderColor: s.buttonBorderColor,
+    iconColor: s.buttonIconColor,
+    boxShadowColor: s.buttonBoxShadowColor,
+    innerBoxShadowColor: s.buttonInnerBoxShadowColor,
+    fontFamily: s.buttonFontFamily,
+    fontSettings: s.buttonFontSettings,
+    fontSize: s.buttonFontSize ?? BUTTON_FALLBACKS.fontSize,
+    lineHeight: s.buttonLineHeight ?? BUTTON_FALLBACKS.lineHeight,
+    letterSpacing: s.buttonLetterSpacing,
+    wordSpacing: s.buttonWordSpacing,
+    textAppearance: s.buttonTextAppearance,
+    stateOverrides,
+  };
+}
+
+function buildValidUrl(url: string): string {
+  const prefixes = ['http://', 'https://', '/', 'mailto:', 'tel:', '#'];
+  if (prefixes.some(prefix => url.startsWith(prefix))) return url;
+  return `//${url}`;
+}
+
+function getUrlHref(link: GeneralLink): { href: string; target?: '_blank' } | undefined {
+  if (link.type !== 'url') return undefined;
+  return { href: buildValidUrl(link.value), ...(link.target === 'blank' ? { target: '_blank' as const } : {}) };
 }
 
 function sizeCss(property: string, value: number, isEditor?: boolean): string {
@@ -496,6 +641,30 @@ function getCSS(P: string, isEditor?: boolean): string {
 .${P}-with-pointer-events {
   pointer-events: auto;
 }
+.${P}-button-block {
+  pointer-events: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  width: 100%;
+  z-index: 1;
+}
+.${P}-button-row {
+  display: flex;
+  justify-content: flex-start;
+}
+.${P}-button-row-center {
+  justify-content: center;
+}
+.${P}-button-row-right {
+  justify-content: flex-end;
+}
+.${P}-button-link {
+  display: inline-block;
+  text-decoration: none;
+  color: inherit;
+  pointer-events: none;
+}
 .${P}-click-overlay {
   position: absolute;
   top: 0;
@@ -527,9 +696,21 @@ function getCSS(P: string, isEditor?: boolean): string {
 `;
 }
 
-export function Slider20({ settings, content, isEditor, isPreviewMode, isEditMode }: Slider20Props) {
+export function Slider20({
+  settings,
+  content,
+  isEditor,
+  isPreviewMode,
+  isEditMode,
+  activeEvent,
+  getLinkHref,
+  onNavigate,
+}: Slider20Props) {
   const { prefix: P } = useScopedStyles();
   const titleStyle = resolveTitleStyle(settings, isEditor);
+  const isButtonVariant = settings?.type === 'b';
+  const buttonPosition = settings?.buttonPosition ?? 'left';
+  const buttonSettings = isButtonVariant ? toSimpleButtonSettings(settings) : null;
   const items = content ?? [];
   const count = items.length;
   const trigger: Slider20Trigger = settings?.trigger ?? DEFAULT_TRIGGER;
@@ -572,6 +753,15 @@ export function Slider20({ settings, content, isEditor, isPreviewMode, isEditMod
 
   const hasClones = isSlideTransition && count > 1;
   const [activeIndex, setActiveIndex] = useState(0);
+  // The button is shared by all slides; its target follows the active slide's link.
+  const buttonLink = isButtonVariant ? (items[activeIndex]?.link ?? null) : null;
+  const buttonLinkHref = !isEditor && buttonLink?.value
+    ? (getLinkHref ? getLinkHref(buttonLink) : getUrlHref(buttonLink))
+    : undefined;
+  const isSceneLink = !isEditor && buttonLink?.type === 'scene' && Boolean(buttonLink.value);
+  const handleSceneNavigate = () => {
+    if (isSceneLink && buttonLink) onNavigate?.(buttonLink);
+  };
   const [trackPosition, setTrackPosition] = useState(hasClones ? 1 : 0);
   const [isMoving, setIsMoving] = useState(false);
   const [skipTransition, setSkipTransition] = useState(false);
@@ -1125,7 +1315,60 @@ export function Slider20({ settings, content, isEditor, isPreviewMode, isEditMod
           </div>
         )}
         </div>
-        {IMAGE_CAPTION.isActive && (
+        {buttonSettings && (
+          <div className={`${P}-button-block`}>
+            <div
+              data-controls={isEditMode ? 'captionMarginTop' : undefined}
+              className={isEditMode ? `${P}-control` : undefined}
+              style={{
+                height: scalingValue(captionMarginTop, isEditor),
+              }}
+            />
+            <div
+              className={cn(
+                `${P}-button-row`,
+                buttonPosition === 'center' && `${P}-button-row-center`,
+                buttonPosition === 'right' && `${P}-button-row-right`,
+              )}
+            >
+              {buttonLinkHref ? (
+                <a
+                  className={`${P}-button-link`}
+                  href={buttonLinkHref.href}
+                  target={buttonLinkHref.target}
+                  rel={buttonLinkHref.target === '_blank' ? 'noreferrer' : undefined}
+                >
+                  <SimpleButton
+                    settings={buttonSettings}
+                    isEditor={isEditor}
+                    isPreviewMode={isPreviewMode}
+                    activeEvent={activeEvent}
+                    hasLink
+                  />
+                </a>
+              ) : (
+                <div
+                  onClick={isSceneLink ? handleSceneNavigate : undefined}
+                  onKeyDown={isSceneLink
+                    ? (event) => {
+                        if (event.key !== 'Enter' && event.key !== ' ') return;
+                        event.preventDefault();
+                        handleSceneNavigate();
+                      }
+                    : undefined}
+                >
+                  <SimpleButton
+                    settings={buttonSettings}
+                    isEditor={isEditor}
+                    isPreviewMode={isPreviewMode}
+                    activeEvent={activeEvent}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+        {!isButtonVariant && IMAGE_CAPTION.isActive && (
           <div className={`${P}-caption-block`}>
             <div
               data-controls={isEditMode ? 'captionMarginTop' : undefined}

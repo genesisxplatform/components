@@ -4,6 +4,7 @@ import { CommonComponentProps } from '../props';
 import { buildColorVars, scalingValue, useScopedStyles } from '../utils/index';
 import { omitTextColors, TextStyles, textStylesToCss } from '../utils/textStylesToCss';
 import { SvgImage } from '../helpers/SvgImage/SvgImage';
+import type { GeneralLink } from '../../types/GeneralLink';
 
 type SurveyAnswer = {
   icon?: {
@@ -19,24 +20,6 @@ type SurveyContentItem = {
   question?: string;
   answers?: SurveyAnswer[];
 };
-
-/** Same shape the editor's LinkPanel produces (`Link` in @genesisxplatform/domain). */
-export type SurveyLink =
-  | {
-    type: 'url' | 'anchor';
-    value: string;
-    target: 'self' | 'blank';
-  }
-  | {
-    type: 'scene';
-    value: string;
-    duration: number;
-    animation: 'fade' | 'slide' | 'reveal';
-    direction?: 'north' | 'west' | 'south' | 'east';
-    offset?: number;
-    mode?: 'normal' | 'reverse';
-    sceneSectionId?: string;
-  };
 
 /** Selected answer indices, one array per question, in content order. */
 export type SurveyAnswers = number[][];
@@ -56,7 +39,7 @@ type SurveySettings = {
   /** Per-question cap when `selectionCount` is `many`; missing or < 1 means no cap. */
   maxSelections?: number;
   submitLabel?: string;
-  submitLink?: SurveyLink | null;
+  submitLink?: GeneralLink | null;
   questionGap?: number;
   questionAnswersGap?: number;
   answerGap?: number;
@@ -126,9 +109,9 @@ type SurveyProps = {
    * anchor section ids). Submit then renders as a real link. Without a host, only
    * `url` links get an href.
    */
-  getLinkHref?: (link: SurveyLink) => { href: string; target?: '_blank' } | undefined;
+  getLinkHref?: (link: GeneralLink) => { href: string; target?: '_blank' } | undefined;
   /** Host-provided scene transition (the SDK's ComponentItem); scenes need the site's transition machine. */
-  onNavigate?: (link: SurveyLink) => void;
+  onNavigate?: (link: GeneralLink) => void;
 } & CommonComponentProps;
 
 type ColorKeys =
@@ -440,7 +423,7 @@ function buildValidUrl(url: string): string {
   return `//${url}`;
 }
 
-function getUrlHref(link: SurveyLink): { href: string; target?: '_blank' } | undefined {
+function getUrlHref(link: GeneralLink): { href: string; target?: '_blank' } | undefined {
   if (link.type !== 'url') return undefined;
   return { href: buildValidUrl(link.value), ...(link.target === 'blank' ? { target: '_blank' as const } : {}) };
 }
